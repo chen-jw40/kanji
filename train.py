@@ -135,7 +135,8 @@ def main():
             model_output = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
             # Compute mean-squared error loss between the predicted and actual noise
-            loss = nn.MSELoss(model_output, noise)
+            criterion = nn.MSELoss()  # Instantiate the loss function
+            loss = criterion(model_output, noise)  # Compute the loss by passing the tensors
 
             accelerator.backward(loss)
             optimizer.step()
