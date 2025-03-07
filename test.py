@@ -26,7 +26,7 @@ def test_model(config, prompt):
     text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder="text_encoder")
     vae = AutoencoderKL.from_pretrained(model_id, subfolder="vae").to(config.device)
     unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet").to(config.device)
-    noise_scheduler = DDPMScheduler.from_pretrained(model_id, subfolder="scheduler").to(config.device)
+    noise_scheduler = DDPMScheduler.from_pretrained(model_id, subfolder="scheduler")
 
     # load checkpoint:
     checkpoint = torch.load(config.checkpoint_path, map_location=config.device)
