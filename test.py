@@ -23,7 +23,7 @@ def test_model(config, prompt):
     model_id = "CompVis/stable-diffusion-v1-4"
 
     tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder="tokenizer")
-    text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder="text_encoder")
+    text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder="text_encoder").to(config.device)
     vae = AutoencoderKL.from_pretrained(model_id, subfolder="vae").to(config.device)
     unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet").to(config.device)
     noise_scheduler = DDPMScheduler.from_pretrained(model_id, subfolder="scheduler")
