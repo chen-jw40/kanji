@@ -1,4 +1,4 @@
-import os
+
 import torch
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
@@ -9,16 +9,15 @@ from diffusers import (
     DDPMScheduler
 )
 from transformers import CLIPTextModel, CLIPTokenizer
-from PIL import Image
-import json
 from tqdm import tqdm
-
-# Define a custom dataset,
 import os
 import json
 from PIL import Image
 from torch.utils.data import Dataset
 import torch.nn as nn
+from types import SimpleNamespace
+import wandb
+import datetime
 
 class CustomImageDataset(Dataset):
     def __init__(self, image_folder, json_file='kanji_dataset.json', transform=None):
@@ -56,24 +55,11 @@ class CustomImageDataset(Dataset):
         return samples
 
 
-
-def main():
-    image_folder = "kanji_dataset"
-    json_file = "kanji_dataset.json"
-    batch_size = 4
-    num_epochs = 5
-    learning_rate = 5e-6
-
-    # Define the image transforms (ensure images are resized to the expected size, e.g. 512x512)
-    transform = transforms.Compose([
-        transforms.Resize((128, 128)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.5], [0.5]),
-    ])
-
+def train(config):
+    wandb.init(project="kanji", config=config)
     # Create the dataset and dataloader
-    dataset = CustomImageDataset(image_folder, json_file, transform=transform)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataset = CustomImageDataset(config.image_folder, json_file, transform=config.transform)
+    dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True)
 
     # Load pretrained components from a Stable Diffusion model.
     # (Here we use "CompVis/stable-diffusion-v1-4" as an example.)
@@ -86,10 +72,9 @@ def main():
     noise_scheduler = DDPMScheduler.from_pretrained(model_id, subfolder="scheduler")
 
     # Set device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    vae.to(device)
-    text_encoder.to(device)
-    unet.to(device)
+    vae.to(config.device)
+    text_encoder.to(config.device)
+    unet.to(config.device)
 
     # Freeze VAE and text encoder (we only fine-tune the UNet)
     for param in vae.parameters():
@@ -98,7 +83,7 @@ def main():
         param.requires_grad = False
 
     # Create optimizer (only for the UNet parameters)
-    optimizer = torch.optim.AdamW(unet.parameters(), lr=learning_rate)
+    optimizer = torch.optim.AdamW(unet.parameters(), lr=config.learning_rate)
 
     # Use Accelerator for mixed precision and multi-GPU training if available
     accelerator = Accelerator()
@@ -106,11 +91,12 @@ def main():
 
     # Begin training loop
     global_step = 0
-    for epoch in range(num_epochs):
+    for epoch in range(config.num_epochs):
         progress_bar = tqdm(dataloader, desc=f"Epoch {epoch + 1}")
+        sum_loss = 0
         for images, texts in progress_bar:
             # Move images to device
-            images = images.to(device)
+            images = images.to(config.device)
 
             # Encode images into latent space using the VAE (and scale by a factor as in training)
             with torch.no_grad():
@@ -119,7 +105,7 @@ def main():
             # Sample random noise and a random timestep for each image
             noise = torch.randn_like(latents)
             bs = latents.shape[0]
-            timesteps = torch.randint(0, noise_scheduler.num_train_timesteps, (bs,), device=device).long()
+            timesteps = torch.randint(0, noise_scheduler.num_train_timesteps, (bs,), device=config.device).long()
 
             # Add noise to the latents according to the noise scheduler
             noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
@@ -127,7 +113,7 @@ def main():
             # Tokenize and encode the text prompts
             text_inputs = tokenizer(texts, padding="max_length", max_length=tokenizer.model_max_length,
                                     truncation=True, return_tensors="pt")
-            text_input_ids = text_inputs.input_ids.to(device)
+            text_input_ids = text_inputs.input_ids.to(config.device)
             with torch.no_grad():
                 encoder_hidden_states = text_encoder(text_input_ids)[0]
 
@@ -143,8 +129,42 @@ def main():
             optimizer.zero_grad()
 
             global_step += 1
-            progress_bar.set_postfix(loss=loss.item())
+            sum_loss += loss
+            wandb.log({'loss': loss})
+
+        checkpoint = {
+            "epoch": epoch,
+            "model_state_dict": unet.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "loss": sum_loss.item(),
+        }
+        torch.save(checkpoint, f"{config.checkpoint_path}_epoch_{epoch}.pth")
 
     print("Training complete!")
+
+
 if __name__ == "__main__":
-    main()
+    wandb.login(key="6970e5acc2ae4e1ce4da59616d7440953ae8fe73")
+
+    conf = SimpleNamespace(
+        image_folder = "kanji_dataset",
+        json_file = "kanji_dataset.json",
+        checkpoint_path = f'experience/run01/checkpoint',
+        batch_size = 4,
+        num_epochs = 5,
+        learning_rate = 5e-6,
+
+        # Define the image transforms (ensure images are resized to the expected size, e.g. 512x512)
+        transform = transforms.Compose([
+            transforms.Resize((128, 128)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.5], [0.5]),
+        ]),
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    )
+    conf_dict = vars(conf)
+
+    # Write the dictionary to a JSON file
+    with open("config.json", "w") as json_file:
+        json.dump(conf_dict, json_file, indent=4)
+    train(conf)
