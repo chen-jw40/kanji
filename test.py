@@ -72,7 +72,7 @@ def test_model(config, prompt):
     image = Image.fromarray(image)
     return image
 
-
+import argparse
 if __name__ == '__main__':
     conf = SimpleNamespace(
         image_folder = "kanji_dataset",
@@ -93,11 +93,13 @@ if __name__ == '__main__':
         image_factor = 0.18215
     )
 
-    checkpoint_path = "checkpoint_epoch_X.pth"
+    parser = argparse.ArgumentParser(description="Generate an image from a prompt using the test_model.")
+    parser.add_argument('--prompt', type=str, required=True, help='The prompt for image generation')
+
+    args = parser.parse_args()
 
     # Generate a test image from a given prompt
-    prompt = "a beautiful landscape with mountains"
-    generated_image = test_model(conf, prompt)
+    generated_image = test_model(conf, args.prompt)
 
     # Save or display the image
     generated_image.save("generated_test_image.png")
