@@ -111,7 +111,7 @@ def train(config):
             # Sample random noise and a random timestep for each image
             noise = torch.randn_like(latents)
             bs = latents.shape[0]
-            timesteps = torch.randint(0, noise_scheduler.num_train_timesteps, (bs,), device=config.device).long()
+            timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bs,), device=config.device).long()
 
             # Add noise to the latents according to the noise scheduler
             noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
