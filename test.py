@@ -29,7 +29,7 @@ def test_model(config, prompt):
     noise_scheduler = DDPMScheduler.from_pretrained(model_id, subfolder="scheduler")
 
     # load checkpoint:
-    checkpoint = torch.load(config.checkpoint_path, map_location=config.device)
+    checkpoint = torch.load(config.checkpoint_path, map_location=config.device, weights_only=True)
     unet.load_state_dict(checkpoint["model_state_dict"])
 
     text_inputs = tokenizer(
@@ -45,7 +45,7 @@ def test_model(config, prompt):
 
     # Initialize random latent noise
     # Adjust latent shape as needed (for 512x512 images and a latent factor of 8, it's [1, 4, 64, 64])
-    latent_shape = (1, unet.in_channels, 64, 64)
+    latent_shape = (1, unet.config.in_channels, 64, 64)
     latents = torch.randn(latent_shape, device=config.device)
     latents = latents * config.image_factor # Scaling factor used during training
 
@@ -101,8 +101,6 @@ if __name__ == '__main__':
 
     # Save or display the image
     generated_image.save("generated_test_image.png")
-    generated_image.show()
-    test_model(conf, prompt)
 
 
 
