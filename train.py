@@ -48,7 +48,7 @@ class CustomImageDataset(Dataset):
             matching_item = next((item for item in self.data if item.get("kanji") == kanji_name), None)
             if matching_item:
                 # Assume the label is stored under the key 'text'
-                label = matching_item.get("text", "")
+                label = matching_item.get("english", "")
                 samples.append((file_name, label))
             else:
                 print(f"No matching entry for image file: {file_name}")
