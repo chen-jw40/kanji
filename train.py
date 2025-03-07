@@ -32,6 +32,9 @@ class CustomImageDataset(Dataset):
 
     def __getitem__(self, idx):
         file_name, label = self.samples[idx]
+        # If the label is a list of words, join them into a single string.
+        if isinstance(label, list):
+            label = " ".join(label)
         path = os.path.join(self.image_folder, file_name)
         image = Image.open(path).convert("RGB")
         if self.transform:
