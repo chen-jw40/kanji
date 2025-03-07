@@ -57,9 +57,15 @@ class CustomImageDataset(Dataset):
 
 def train(config):
     wandb.init(project="kanji", config=config)
+    transform = transforms.Compose([
+        transforms.Resize((128, 128)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5], [0.5]),
+    ]),
     # Create the dataset and dataloader
-    dataset = CustomImageDataset(config.image_folder, json_file, transform=config.transform)
+    dataset = CustomImageDataset(config.image_folder, config.json_file, transform=transform)
     dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True)
+
 
     # Load pretrained components from a Stable Diffusion model.
     # (Here we use "CompVis/stable-diffusion-v1-4" as an example.)
@@ -100,7 +106,7 @@ def train(config):
 
             # Encode images into latent space using the VAE (and scale by a factor as in training)
             with torch.no_grad():
-                latents = vae.encode(images).latent_dist.sample() * 0.18215
+                latents = vae.encode(images).latent_dist.sample() * config.image_factor
 
             # Sample random noise and a random timestep for each image
             noise = torch.randn_like(latents)
@@ -138,7 +144,7 @@ def train(config):
             "optimizer_state_dict": optimizer.state_dict(),
             "loss": sum_loss.item(),
         }
-        torch.save(checkpoint, f"{config.checkpoint_path}_epoch_{epoch}.pth")
+        torch.save(checkpoint, f"{config.checkpoint_path}/checkpoint_epoch_{epoch}.pth")
 
     print("Training complete!")
 
@@ -149,22 +155,19 @@ if __name__ == "__main__":
     conf = SimpleNamespace(
         image_folder = "kanji_dataset",
         json_file = "kanji_dataset.json",
-        checkpoint_path = f'experience/run01/checkpoint',
+        checkpoint_path = f'experience/run01/',
         batch_size = 4,
         num_epochs = 5,
         learning_rate = 5e-6,
 
         # Define the image transforms (ensure images are resized to the expected size, e.g. 512x512)
-        transform = transforms.Compose([
-            transforms.Resize((128, 128)),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5], [0.5]),
-        ]),
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = "cuda" if torch.cuda.is_available() else "cpu",
+        image_factor = 0.18215
     )
     conf_dict = vars(conf)
 
+    os.makedirs(conf.checkpoint_path)
     # Write the dictionary to a JSON file
-    with open("config.json", "w") as json_file:
-        json.dump(conf_dict, json_file, indent=4)
+    with open("config.json", "w") as file:
+        json.dump(conf_dict, file, indent=4)
     train(conf)
