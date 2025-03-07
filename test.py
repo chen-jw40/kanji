@@ -47,7 +47,7 @@ def test_model(config, prompt):
     # Adjust latent shape as needed (for 512x512 images and a latent factor of 8, it's [1, 4, 64, 64])
     latent_shape = (1, unet.in_channels, 64, 64)
     latents = torch.randn(latent_shape, device=config.device)
-    latents = latents * 0.18215  # Scaling factor used during training
+    latents = latents * config.image_factor # Scaling factor used during training
 
     # Prepare the scheduler for inference (if necessary)
     # Create a list of timesteps for inference, usually in reverse order.
@@ -63,7 +63,7 @@ def test_model(config, prompt):
 
     # Decode the latents into an image
     with torch.no_grad():
-        decoded = vae.decode(latents / 0.18215).sample
+        decoded = vae.decode(latents / config.image_factor).sample
 
     # Post-process the image: scale to [0, 1] then convert to [0, 255]
     image = (decoded / 2 + 0.5).clamp(0, 1)
@@ -89,7 +89,8 @@ if __name__ == '__main__':
             transforms.Normalize([0.5], [0.5]),
         ]),
         device = "cuda" if torch.cuda.is_available() else "cpu",
-        num_inference_steps = 30
+        num_inference_steps = 1000,
+        image_factor = 0.18215
     )
 
     checkpoint_path = "checkpoint_epoch_X.pth"
