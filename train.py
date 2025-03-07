@@ -61,7 +61,7 @@ def train(config):
         transforms.Resize((128, 128)),
         transforms.ToTensor(),
         transforms.Normalize([0.5], [0.5]),
-    ]),
+    ])
     # Create the dataset and dataloader
     dataset = CustomImageDataset(config.image_folder, config.json_file, transform=transform)
     dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True)
