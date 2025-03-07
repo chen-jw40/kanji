@@ -77,7 +77,7 @@ if __name__ == '__main__':
     conf = SimpleNamespace(
         image_folder = "kanji_dataset",
         json_file = "kanji_dataset.json",
-        checkpoint_path = f'experience/run01/checkpoint_epoch_4',
+        checkpoint_path = f'experience/run01/checkpoint_epoch_4.pth',
         batch_size = 4,
         num_epochs = 5,
         learning_rate = 5e-6,
