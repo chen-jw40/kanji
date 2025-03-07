@@ -166,7 +166,7 @@ if __name__ == "__main__":
     )
     conf_dict = vars(conf)
 
-    os.makedirs(conf.checkpoint_path)
+    os.makedirs(conf.checkpoint_path, exist_ok=True)
     # Write the dictionary to a JSON file
     with open("config.json", "w") as file:
         json.dump(conf_dict, file, indent=4)
