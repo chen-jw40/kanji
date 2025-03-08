@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import json
 import cairosvg
 import re
+from tqdm import tqdm
 
 from ldm.modules.image_degradation.utils_image import mkdir
 
@@ -37,20 +38,22 @@ def form_png_dataset():
 
     target_path = './kanji_dataset'
     os.makedirs(target_path, exist_ok=True)
-    for entry in data:
-        kanji = entry.get("kanji")
-        english_meanings = entry.get("english")
+    for entry in tqdm(data, desc="Generating PNGs", unit="kanji"):
+        try:
+            kanji = entry.get("kanji")
+            english_meanings = entry.get("english")
 
-        tree = ET.parse("kanjivg.xml")
-        root = tree.getroot()
+            tree = ET.parse("kanjivg.xml")
+            root = tree.getroot()
 
-        svg_content = look_up_svg(kanji, root)
+            svg_content = look_up_svg(kanji, root)
 
-        target_file = os.path.join(target_path, kanji)
-        generate_png(target_file, svg_content)
-
+            target_file = os.path.join(target_path, kanji)
+            generate_png(target_file, svg_content)
+        except Exception as e:
+            print(f"Error looking up SVG for kanji {kanji}: {e}")
+            continue
     return
-
 
 def look_up_svg(kanji, root):
     # Find the element with the desired Kanji
@@ -71,13 +74,10 @@ def look_up_svg(kanji, root):
 
 # Generate png from svg
 def generate_png(path, svg_content):
-    test_path = './kanjivg/kanji/0f9ab.svg'
-    # cairosvg.svg2png(url=test_path, write_to=f'{path}.png', background_color='rgba(0,0,0,0)')
-    # cairosvg.svg2png(bytestring=svg_content.encode('utf-8'), write_to=f'{path}.png', background_color='rgba(0,0,0,0)')
     cairosvg.svg2png(
         bytestring=svg_content.encode('utf-8'),
         write_to=f'{path}.png',
-        background_color='rgba(0,0,0,0)',
+        background_color='white',
         output_width=128,
         output_height=128
     )

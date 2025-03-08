@@ -39,6 +39,7 @@ class CustomImageDataset(Dataset):
         image = Image.open(path).convert("RGB")
         if self.transform:
             image = self.transform(image)
+        print(torch.max(image))
         return image, label
 
     def match(self):
@@ -148,6 +149,7 @@ def train(config):
             "loss": sum_loss.item(),
         }
         torch.save(checkpoint, f"{config.checkpoint_path}/checkpoint_epoch_{epoch}.pth")
+        print(f'sum_loss: {sum_loss}')
 
     print("Training complete!")
 
@@ -165,7 +167,7 @@ if __name__ == "__main__":
 
         # Define the image transforms (ensure images are resized to the expected size, e.g. 512x512)
         device = "cuda" if torch.cuda.is_available() else "cpu",
-        image_factor = 0.18215
+        image_factor = 0.2
     )
     conf_dict = vars(conf)
 

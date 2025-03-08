@@ -44,8 +44,7 @@ def test_model(config, prompt):
         encoder_hidden_states = text_encoder(text_input_ids)[0]
 
     # Initialize random latent noise
-    # Adjust latent shape as needed (for 512x512 images and a latent factor of 8, it's [1, 4, 64, 64])
-    latent_shape = (1, unet.config.in_channels, 64, 64)
+    latent_shape = (1, unet.config.in_channels, 16, 16)
     latents = torch.randn(latent_shape, device=config.device)
     latents = latents * config.image_factor # Scaling factor used during training
 
@@ -94,10 +93,10 @@ if __name__ == '__main__':
     )
 
     parser = argparse.ArgumentParser(description="Generate an image from a prompt using the test_model.")
-    parser.add_argument('--prompt', type=str, required=True, help='The prompt for image generation')
+    parser.add_argument('--prompt', type=str, required=False, help='The prompt for image generation')
 
     args = parser.parse_args()
-
+    args.prompt = 'water'
     # Generate a test image from a given prompt
     generated_image = test_model(conf, args.prompt)
 
